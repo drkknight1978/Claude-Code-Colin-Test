@@ -1,91 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voltage Drop Iterative Calculator</title>
-<link rel="stylesheet" href="classic_style.css" id="styleSheet"> <!-- Added the id="styleSheet" here -->
-<link rel="stylesheet" href="common_styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voltage Drop Calculator - Railway Engineering Utilities</title>
+    <link rel="stylesheet" href="railway-theme.css">
+    <style>
+        /* Calculator-specific styles */
+        .container {
+            max-width: 800px;
+        }
 
+        button {
+            width: 100%;
+            padding: 15px 30px;
+            font-size: 16px;
+        }
+
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #1a1a1a;
+            border: 2px solid #8b6f47;
+            border-radius: 4px;
+            color: #d4af37;
+            font-size: 16px;
+            line-height: 1.8;
+            display: none;
+        }
+
+        #results.active {
+            display: block;
+        }
+    </style>
+    <!-- Authentication Script - MUST be loaded first -->
+    <script src="auth.js"></script>
 </head>
 <body>
-<div class="container">
-	<h1>Voltage Drop Iterative Calculator</h1>
-    <div class="button-panel">
-	    <h1> Style Settings </h1>
-        <button onclick="changeStyle('classic_style.css')">Classic Style</button>
-        <button onclick="changeStyle('60s_style.css')">60's Style</button>
-        <button onclick="changeStyle('glass_and_crystals_style.css')">Glass & Crystals Style</button>
-        <button onclick="changeStyle('modern_style.css')">Modern Style</button>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Utilities</a>
+
+        <h1>Voltage Drop Calculator</h1>
+
+        <div class="rivets-container">
+            <span class="rivet"></span>
+            <span class="rivet"></span>
+            <span class="rivet"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="csvFile">Upload Conductor Data (CSV):</label>
+            <input type="file" id="csvFile" accept=".csv" onchange="loadConductorData(event)">
+            <p class="info-text">CSV format: Conductor Size (mm²),Resistance (Ω/km)</p>
+        </div>
+
+        <div class="decorative-line"></div>
+
+        <div class="form-group">
+            <label for="conductor">Select Conductor:</label>
+            <select id="conductor" disabled>
+                <option value="">Please upload conductor data first</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="length">Cable Length (km):</label>
+            <input type="number" id="length" value="0.1" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+            <label for="load">Power Load (VA):</label>
+            <input type="number" id="load" value="825" step="1" min="0">
+        </div>
+
+        <div class="form-group">
+            <label for="voltage">Supplied Voltage (V):</label>
+            <input type="number" id="voltage" value="120" step="1" min="0">
+        </div>
+
+        <button onclick="calculateVoltageDropIterative()" id="calculateBtn" disabled>Calculate</button>
+
+        <p id="results"></p>
     </div>
 
-    <label for="conductor">Select Conductor:</label>
-    <select id="conductor">
-        <option value="49.6">0.75mm²</option>
-        <option value="36.2">1.00mm²</option>
-        <option value="34.6">1.15mm²</option>
-        <option value="24.4">1.5mm²</option>
-        <option value="15.1">2.5mm²</option>
-        <option value="16.4" selected>2.5mm² (f)</option>
-        <option value="9.22">4.0mm²</option>
-        <option value="3.68">10mm²</option>
-        <option value="2.32">16mm²</option>
-        <option value="1.45">25mm²</option>
-        <option value="1.06">35mm²</option>
-        <option value="0.54">70mm²</option>
-        <option value="0.39">95mm²</option>
-    </select>
+    <script>
+        function loadConductorData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    <label for="length">Cable Length (km):</label>
-    <input type="number" id="length" value="0.1">
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const conductorSelect = document.getElementById('conductor');
+                const calculateBtn = document.getElementById('calculateBtn');
 
-    <label for="load">Power Load (VA):</label>
-    <input type="number" id="load" value="825">
+                // Clear existing options
+                conductorSelect.innerHTML = '';
 
-    <label for="voltage">Supplied Voltage (V):</label>
-    <input type="number" id="voltage" value="120">
+                let validEntries = 0;
 
-    <button onclick="calculateVoltageDropIterative()">Calculate</button>
+                // Parse CSV (skip header row)
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
 
-    <p id="results"></p>
-</div>
+                    const parts = line.split(',');
+                    if (parts.length >= 2) {
+                        const size = parts[0].trim();
+                        const resistance = parts[1].trim();
 
-<script>
-function calculateVoltageDropIterative() {
-    const R_cable = parseFloat(document.getElementById("conductor").value);
-    const L_cable = parseFloat(document.getElementById("length").value);
-    const P_load = parseFloat(document.getElementById("load").value);
-    const V_supplied = parseFloat(document.getElementById("voltage").value);
+                        if (size && resistance && !isNaN(parseFloat(resistance))) {
+                            const option = document.createElement('option');
+                            option.value = resistance;
+                            option.textContent = size;
+                            conductorSelect.appendChild(option);
+                            validEntries++;
+                        }
+                    }
+                }
 
-    let V_load = V_supplied; // Initial assumption: no voltage drop
-    let tolerance = 0.01; // Voltage stability tolerance
-    let error = 1;
-    let iterations = 0;
-    let I_load;
+                if (validEntries > 0) {
+                    conductorSelect.disabled = false;
+                    calculateBtn.disabled = false;
+                    document.getElementById('results').className = '';
+                    document.getElementById('results').innerHTML = `<span style="color: #90EE90;">✓ Successfully loaded ${validEntries} conductor size(s)</span>`;
+                    document.getElementById('results').className = 'active';
+                } else {
+                    conductorSelect.innerHTML = '<option value="">No valid data found in CSV</option>';
+                    conductorSelect.disabled = true;
+                    calculateBtn.disabled = true;
+                }
+            };
 
-    while (error > tolerance) {
-        iterations++;
-        const R = R_cable * L_cable;
-        const V_load_new = V_supplied - (P_load / V_load) * R;
-        I_load = P_load / V_load;
-
-        // Update error measure
-        error = Math.abs(V_load_new - V_load);
-        V_load = V_load_new; // Update load voltage for next iteration
-
-        if (iterations > 100000) { // Prevent infinite loops
-            break;
+            reader.readAsText(file);
         }
-    }
 
-    document.getElementById("results").innerHTML = `Voltage at the load: ${V_load.toFixed(2)} V<br>Current drawn by the load: ${I_load.toFixed(2)} A<br>Iterations: ${iterations}`;
-}
-</script>
-<script>
-function changeStyle(sheet) {
-    document.getElementById('styleSheet').href = sheet;
-}
-</script>
+        function calculateVoltageDropIterative() {
+            const R_cable = parseFloat(document.getElementById("conductor").value);
+            const L_cable = parseFloat(document.getElementById("length").value);
+            const P_load = parseFloat(document.getElementById("load").value);
+            const V_supplied = parseFloat(document.getElementById("voltage").value);
+
+            // Validation
+            if (isNaN(R_cable) || isNaN(L_cable) || isNaN(P_load) || isNaN(V_supplied)) {
+                document.getElementById('results').className = 'active';
+                document.getElementById('results').innerHTML = '<span class="error-text">Please fill in all fields with valid numbers</span>';
+                return;
+            }
+
+            if (L_cable <= 0 || P_load <= 0 || V_supplied <= 0) {
+                document.getElementById('results').className = 'active';
+                document.getElementById('results').innerHTML = '<span class="error-text">Values must be greater than zero</span>';
+                return;
+            }
+
+            let V_load = V_supplied; // Initial assumption: no voltage drop
+            let tolerance = 0.01; // Voltage stability tolerance
+            let error = 1;
+            let iterations = 0;
+            let I_load;
+
+            while (error > tolerance) {
+                iterations++;
+                const R = R_cable * L_cable;
+                const V_load_new = V_supplied - (P_load / V_load) * R;
+                I_load = P_load / V_load;
+
+                // Update error measure
+                error = Math.abs(V_load_new - V_load);
+                V_load = V_load_new; // Update load voltage for next iteration
+
+                if (iterations > 100000) { // Prevent infinite loops
+                    break;
+                }
+            }
+
+            const voltageDropPercent = ((V_supplied - V_load) / V_supplied * 100).toFixed(2);
+
+            document.getElementById('results').className = 'active';
+            document.getElementById('results').innerHTML = `
+                <strong>Calculation Results:</strong><br><br>
+                Voltage at Load: <strong>${V_load.toFixed(2)} V</strong><br>
+                Current Drawn: <strong>${I_load.toFixed(2)} A</strong><br>
+                Voltage Drop: <strong>${(V_supplied - V_load).toFixed(2)} V (${voltageDropPercent}%)</strong><br>
+                Iterations: <strong>${iterations}</strong>
+            `;
+        }
+    </script>
 </body>
 </html>
-

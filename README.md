@@ -27,9 +27,24 @@ Add stamps and watermarks to PDF documents with precision control.
 - Apply to specific pages or page ranges
 - Real-time preview of changes
 
-### 2. Future Tools (Coming Soon)
+### 2. Voltage Drop Calculator
+Calculate voltage drop in electrical systems with iterative precision. Essential for railway power distribution and signal circuits.
+
+**Features**:
+- CSV-based conductor data upload (proprietary data protection)
+- Iterative voltage drop calculation algorithm
+- Support for custom conductor sizes and resistances
+- Real-time calculation results with:
+  - Voltage at load
+  - Current drawn by load
+  - Voltage drop (absolute and percentage)
+  - Iteration count
+- Input validation and error handling
+- Railway-themed interface matching the application suite
+
+### 3. Future Tools (Coming Soon)
 - Technical Drawings Converter
-- Rail Calculator
+- Rail Calculator (additional functionality)
 - Data Converter
 
 ## 🚀 Quick Start
@@ -44,7 +59,7 @@ Add stamps and watermarks to PDF documents with precision control.
 
 3. **Select a Tool**
    - Choose from available utilities on the home page
-   - Currently: PDF Stamper is available
+   - Currently: PDF Stamper and Voltage Drop Calculator are available
 
 4. **Logout**
    - Click the "Logout" button on any page to end your session
@@ -56,8 +71,11 @@ Add stamps and watermarks to PDF documents with precision control.
 ├── login.html          # Authentication page
 ├── auth.js             # Shared authentication module
 ├── pdf-stamper.html    # PDF stamping tool
+├── calc.html           # Voltage drop calculator tool
+├── classic_style.css   # Classic styling for calculator
 ├── README.md           # This file
 ├── AUTH_README.md      # Authentication setup guide
+├── CHANGELOG.md        # Version history and changes
 └── .gitignore          # Git ignore rules
 ```
 
@@ -120,6 +138,42 @@ Change to desired duration:
    - Click "Process & Download"
    - Stamped PDF downloads automatically
 
+## ⚡ Voltage Drop Calculator Usage
+
+1. **Login** to access the tool
+2. **Upload Conductor Data**:
+   - Prepare a CSV file with conductor sizes and resistances
+   - Format: `Conductor Size (mm²),Resistance (Ω/km)`
+   - Example:
+     ```csv
+     Conductor Size (mm²),Resistance (Ω/km)
+     0.75,49.6
+     1.00,36.2
+     2.5,15.1
+     ```
+   - Click "Choose File" and select your CSV
+3. **Configure Calculation**:
+   - Select conductor size from the dropdown (populated from CSV)
+   - Enter cable length in kilometers
+   - Enter power load in VA (volt-amperes)
+   - Enter supplied voltage in volts
+4. **Calculate**:
+   - Click "Calculate" button
+   - View results including:
+     - Voltage at load
+     - Current drawn
+     - Voltage drop (V and %)
+     - Number of iterations required
+5. **Adjust & Recalculate**:
+   - Modify any input values
+   - Click "Calculate" again for updated results
+
+**CSV Format Notes**:
+- First row is the header and will be skipped
+- Each subsequent row should have: conductor size, resistance
+- Conductor size can include units (e.g., "2.5mm²" or "2.5 (f)")
+- Resistance must be a valid number in Ω/km
+
 ## 💻 Technical Details
 
 ### Technologies Used
@@ -127,7 +181,8 @@ Change to desired duration:
 - **pdf-lib** (v1.17.1) - PDF modification
 - **Web Crypto API** - Password hashing (SHA-256)
 - **LocalStorage API** - Session management
-- **Vanilla JavaScript** - No frameworks
+- **FileReader API** - CSV file parsing
+- **Vanilla JavaScript** - No frameworks, no dependencies
 - **HTML5 Canvas** - Preview rendering
 
 ### Browser Compatibility
@@ -241,7 +296,46 @@ To modify:
 - Process fewer pages at once
 - Close other browser tabs
 
+### Voltage Drop Calculator Issues
+
+**CSV file won't load**
+- Ensure file is in CSV format (not Excel .xlsx)
+- Check that file has proper header row
+- Verify comma separation (not semicolons or tabs)
+- Ensure file encoding is UTF-8
+
+**No conductors appear in dropdown**
+- Verify CSV has valid data rows (not just header)
+- Check that resistance values are valid numbers
+- Ensure no blank lines in CSV
+- Try re-uploading the CSV file
+
+**Calculate button disabled**
+- Upload a valid CSV file first
+- Ensure at least one conductor loaded successfully
+- Check browser console for errors
+
+**Incorrect calculation results**
+- Verify input values are in correct units:
+  - Length in kilometers (not meters)
+  - Power in VA (not watts for AC loads)
+  - Voltage in volts
+  - Resistance in Ω/km
+- Check conductor selection matches intended size
+- Ensure positive values for all inputs
+
 ## 📝 Version History
+
+### v2.1 - Voltage Drop Calculator
+- ✅ Added Voltage Drop Calculator tool (calc.html)
+- ✅ Implemented CSV-based conductor data upload
+- ✅ Iterative voltage drop calculation algorithm
+- ✅ Railway-themed styling matching application suite
+- ✅ Proprietary data protection (no hardcoded conductor values)
+- ✅ Input validation and error handling
+- ✅ Enhanced results display with voltage drop percentage
+- ✅ Authentication integration
+- ✅ Back navigation to main utilities page
 
 ### v2.0 - Authentication Update
 - ✅ Added password-based authentication system

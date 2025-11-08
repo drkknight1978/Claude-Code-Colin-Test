@@ -5,6 +5,137 @@ All notable changes to Railway Engineering Utilities will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-11-08
+
+### Added - Voltage Drop Calculator
+
+#### New Files
+- **calc.html** - Voltage drop calculator tool
+  - Railway Engineering themed design matching application suite
+  - CSV-based conductor data upload functionality
+  - Iterative voltage drop calculation algorithm
+  - Real-time calculation with detailed results
+  - Input validation and error handling
+  - Authentication integration with auth.js
+  - Back navigation to index.html
+  - Responsive design for mobile devices
+
+- **classic_style.css** - Classic styling for calculator
+  - Consistent Railway Engineering aesthetic
+  - Dark theme with gold/copper accents
+  - Matching typography and decorative elements
+
+#### Modified Files
+- **index.html**
+  - Replaced "Technical Drawings" placeholder with "Voltage Drop Calculator" card (line 277-289)
+  - Added link to calc.html
+  - Changed icon to ⚡ (electrical symbol)
+  - Updated description to reflect voltage drop calculation functionality
+  - Changed card from "coming-soon" to active/available status
+
+#### Features
+- **CSV Upload for Conductor Data**
+  - FileReader API integration for client-side CSV parsing
+  - Header row detection and skipping
+  - Dynamic dropdown population from CSV data
+  - Support for custom conductor size naming (e.g., "2.5mm²", "2.5 (f)")
+  - Validation of resistance values
+  - Success/error feedback to user
+  - Proprietary data protection (no hardcoded conductor values in repository)
+
+- **Iterative Calculation Algorithm**
+  - Voltage drop calculation using iterative convergence method
+  - Tolerance-based error checking (0.01V)
+  - Infinite loop protection (max 100,000 iterations)
+  - Calculates voltage at load, current drawn, and voltage drop
+  - Displays both absolute voltage drop and percentage
+
+- **User Interface**
+  - Disabled conductor dropdown until CSV is uploaded
+  - Disabled calculate button until valid data is loaded
+  - Form validation for all input fields
+  - Clear error messaging for invalid inputs
+  - Results display with detailed breakdown:
+    - Voltage at Load (V)
+    - Current Drawn (A)
+    - Voltage Drop (V and %)
+    - Iteration count
+  - Decorative rivet effects and railway-themed styling
+  - Responsive layout for mobile devices
+
+### Changed
+- **index.html**
+  - Removed "Technical Drawings" placeholder card
+  - Added "Voltage Drop Calculator" as second available tool
+  - Updated utility grid with active calculator link
+
+### Security
+- **Proprietary Data Protection**
+  - No conductor resistance data stored in repository
+  - Users must provide their own CSV files with conductor specifications
+  - Prevents disclosure of proprietary engineering data
+  - CSV format documented for user reference
+
+### Documentation
+- Updated README.md with:
+  - Voltage Drop Calculator in Available Tools section
+  - Detailed usage instructions
+  - CSV format specifications and examples
+  - File structure updates
+  - Troubleshooting section for calculator issues
+  - Version history update
+- Updated CHANGELOG.md with comprehensive v2.1.0 changes
+
+### Technical Details
+- **Input Parameters**:
+  - Conductor resistance (Ω/km) - from CSV
+  - Cable length (km)
+  - Power load (VA)
+  - Supplied voltage (V)
+
+- **Calculation Method**:
+  ```
+  Iterative approach:
+  1. Initial assumption: V_load = V_supplied (no drop)
+  2. Calculate current: I = P / V_load
+  3. Calculate voltage drop: V_drop = I × R × L
+  4. Update V_load: V_load_new = V_supplied - V_drop
+  5. Check error: |V_load_new - V_load|
+  6. Repeat until error < tolerance (0.01V)
+  ```
+
+- **Browser Requirements**:
+  - FileReader API support
+  - ES6+ JavaScript features
+  - localStorage API (for authentication)
+
+### Testing
+Manual testing completed:
+- ✅ CSV upload with valid data populates dropdown
+- ✅ CSV upload with invalid data shows error
+- ✅ Calculate button disabled until CSV loaded
+- ✅ Input validation works for all fields
+- ✅ Calculation produces accurate results
+- ✅ Results display correctly formatted
+- ✅ Authentication check redirects to login
+- ✅ Back navigation returns to index.html
+- ✅ Responsive design works on mobile
+- ✅ Railway styling matches application theme
+
+### Known Limitations
+1. **CSV Format Requirement**: Users must provide CSV files in specific format
+2. **Client-Side Only**: No server-side validation or storage
+3. **No CSV Template**: Users must create their own CSV files
+4. **Single File Upload**: Cannot merge multiple CSV files
+5. **No Data Persistence**: Uploaded CSV data cleared on page refresh
+
+### Migration Notes
+For existing users upgrading from v2.0:
+1. **No Breaking Changes**: Existing tools continue to work
+2. **New Tool Available**: Voltage Drop Calculator accessible from index.html
+3. **CSV Required**: Users need to prepare conductor data CSV files
+4. **Same Authentication**: Uses existing auth.js and session management
+
 ## [2.0.0] - 2025-11-08
 
 ### Added - Authentication System
