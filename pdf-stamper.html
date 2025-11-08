@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Stamper Web App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .section {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .file-row label {
+            width: 100px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .file-path {
+            flex: 1;
+            padding: 8px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+
+        .preview-section {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .preview-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .page-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .zoom-controls label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .zoom-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 18px;
+        }
+
+        .slider {
+            flex: 1;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .zoom-label {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .preview-container {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+            overflow: auto;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #previewCanvas {
+            cursor: grab;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #previewCanvas.dragging {
+            cursor: grabbing;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .control-group h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .control-item {
+            margin-bottom: 12px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .coord-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .coord-inputs > div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .coord-inputs label {
+            margin: 0;
+            min-width: 20px;
+        }
+
+        .coord-inputs input {
+            width: 100%;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-value {
+            text-align: right;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Stamper Web App</h1>
+        
+        <!-- File Selection -->
+        <div class="section">
+            <h2>File Selection</h2>
+            <div class="file-row">
+                <label>PDF File:</label>
+                <div class="file-path" id="pdfFileName">No file selected</div>
+                <input type="file" id="pdfFile" accept=".pdf" class="hidden">
+                <button class="btn" onclick="document.getElementById('pdfFile').click()">Browse...</button>
+            </div>
+            <div class="file-row">
+                <label>Stamp Image:</label>
+                <div class="file-path" id="stampFileName">No file selected</div>
+                <input type="file" id="stampFile" accept="image/*" class="hidden">
+                <button class="btn" onclick="document.getElementById('stampFile').click()">Browse...</button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Preview Section -->
+            <div class="preview-section">
+                <h2>Preview</h2>
+                <div class="preview-nav">
+                    <button class="btn" id="prevPageBtn" disabled>Previous Page</button>
+                    <span class="page-label" id="pageLabel">Page: 0 / 0</span>
+                    <button class="btn" id="nextPageBtn" disabled>Next Page</button>
+                </div>
+                
+                <div class="zoom-controls">
+                    <label>Zoom:</label>
+                    <button class="btn zoom-btn" id="zoomOutBtn" disabled>-</button>
+                    <input type="range" id="zoomSlider" min="10" max="300" value="100" disabled class="slider">
+                    <button class="btn zoom-btn" id="zoomInBtn" disabled>+</button>
+                    <span class="zoom-label" id="zoomLabel">100%</span>
+                    <button class="btn btn-secondary" id="zoomFitBtn" disabled>Fit</button>
+                </div>
+
+                <div class="preview-container" id="previewContainer">
+                    <canvas id="previewCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="controls-section">
+                <!-- Position Controls -->
+                <div class="control-group">
+                    <h3>Stamp Controls</h3>
+                    
+                    <div class="control-item">
+                        <label>Position Preset:</label>
+                        <select id="positionPreset" disabled>
+                            <option value="top-left">Top-Left</option>
+                            <option value="top-right">Top-Right</option>
+                            <option value="center">Center</option>
+                            <option value="bottom-left">Bottom-Left</option>
+                            <option value="bottom-right">Bottom-Right</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+
+                    <div class="control-item">
+                        <label>Coordinates:</label>
+                        <div class="coord-inputs">
+                            <div>
+                                <label>X:</label>
+                                <input type="number" id="xCoord" value="0" min="0" disabled>
+                            </div>
+                            <div>
+                                <label>Y:</label>
+                                <input type="number" id="yCoord" value="0" min="0" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-item">
+                        <label>Opacity:</label>
+                        <div class="slider-container">
+                            <input type="range" id="opacitySlider" min="0" max="100" value="100" disabled>
+                            <div class="slider-value" id="opacityValue">100%</div>
+                        </div>
+                    </div>
+
+                    <div class="control-item">
+                        <label>Scale:</label>
+                        <div class="slider-container">
+                            <input type="range" id="scaleSlider" min="10" max="200" value="100" disabled>
+                            <div class="slider-value" id="scaleValue">100%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page Range Controls -->
+                <div class="control-group">
+                    <h3>Page Options</h3>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="allPagesCheck" disabled>
+                        <label for="allPagesCheck">Apply to all pages</label>
+                    </div>
+
+                    <div class="control-item">
+                        <label>Page Range:</label>
+                        <input type="text" id="pageRangeInput" placeholder="e.g., 1-3, 5, 7-9" disabled>
+                        <div class="info-text">Leave empty for current page only</div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="batchModeCheck" disabled>
+                        <label for="batchModeCheck">Batch mode (multiple PDFs)</label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="control-group">
+                    <h3>Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" id="processBtn" disabled>Process & Download</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Application state
+        const state = {
+            pdfFile: null,
+            stampFile: null,
+            pdfDocument: null,
+            currentPage: 0,
+            stampImage: null,
+            stampPosition: { x: 0, y: 0 },
+            opacity: 1.0,
+            zoomFactor: 1.0,
+            stampScale: 1.0,
+            originalStampSize: null,
+            isDragging: false,
+            dragStart: null,
+            dragStartStampPos: null,
+            renderedPage: null,
+            originalPageWidth: 0,
+            originalPageHeight: 0
+        };
+
+        // DOM elements
+        const elements = {
+            pdfFile: document.getElementById('pdfFile'),
+            stampFile: document.getElementById('stampFile'),
+            pdfFileName: document.getElementById('pdfFileName'),
+            stampFileName: document.getElementById('stampFileName'),
+            prevPageBtn: document.getElementById('prevPageBtn'),
+            nextPageBtn: document.getElementById('nextPageBtn'),
+            pageLabel: document.getElementById('pageLabel'),
+            zoomSlider: document.getElementById('zoomSlider'),
+            zoomInBtn: document.getElementById('zoomInBtn'),
+            zoomOutBtn: document.getElementById('zoomOutBtn'),
+            zoomFitBtn: document.getElementById('zoomFitBtn'),
+            zoomLabel: document.getElementById('zoomLabel'),
+            previewCanvas: document.getElementById('previewCanvas'),
+            previewContainer: document.getElementById('previewContainer'),
+            positionPreset: document.getElementById('positionPreset'),
+            xCoord: document.getElementById('xCoord'),
+            yCoord: document.getElementById('yCoord'),
+            opacitySlider: document.getElementById('opacitySlider'),
+            opacityValue: document.getElementById('opacityValue'),
+            scaleSlider: document.getElementById('scaleSlider'),
+            scaleValue: document.getElementById('scaleValue'),
+            allPagesCheck: document.getElementById('allPagesCheck'),
+            pageRangeInput: document.getElementById('pageRangeInput'),
+            batchModeCheck: document.getElementById('batchModeCheck'),
+            processBtn: document.getElementById('processBtn')
+        };
+
+        // Event Listeners - File Selection
+        elements.pdfFile.addEventListener('change', handlePdfFileSelect);
+        elements.stampFile.addEventListener('change', handleStampFileSelect);
+
+        // Event Listeners - Navigation
+        elements.prevPageBtn.addEventListener('click', previousPage);
+        elements.nextPageBtn.addEventListener('click', nextPage);
+
+        // Event Listeners - Zoom
+        elements.zoomSlider.addEventListener('input', handleZoomChange);
+        elements.zoomInBtn.addEventListener('click', () => zoomBy(10));
+        elements.zoomOutBtn.addEventListener('click', () => zoomBy(-10));
+        elements.zoomFitBtn.addEventListener('click', zoomToFit);
+
+        // Event Listeners - Controls
+        elements.positionPreset.addEventListener('change', handlePositionPresetChange);
+        elements.xCoord.addEventListener('input', handleCoordChange);
+        elements.yCoord.addEventListener('input', handleCoordChange);
+        elements.opacitySlider.addEventListener('input', handleOpacityChange);
+        elements.scaleSlider.addEventListener('input', handleScaleChange);
+        elements.allPagesCheck.addEventListener('change', updateUIState);
+        elements.processBtn.addEventListener('click', handleProcess);
+
+        // Event Listeners - Canvas Dragging
+        elements.previewCanvas.addEventListener('mousedown', handleMouseDown);
+        elements.previewCanvas.addEventListener('mousemove', handleMouseMove);
+        elements.previewCanvas.addEventListener('mouseup', handleMouseUp);
+        elements.previewCanvas.addEventListener('mouseleave', handleMouseUp);
+
+        // File Selection Handlers
+        async function handlePdfFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            state.pdfFile = file;
+            elements.pdfFileName.textContent = file.name + ' (loading...)';
+            elements.pdfFileName.style.color = '#666';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                state.pdfDocument = await loadingTask.promise;
+                state.currentPage = 0;
+                
+                console.log('PDF loaded:', state.pdfDocument.numPages, 'pages');
+                elements.pdfFileName.textContent = file.name + ' ✓ (' + state.pdfDocument.numPages + ' pages)';
+                elements.pdfFileName.style.color = '#28a745';
+                
+                await renderPage();
+                updateUIState();
+            } catch (error) {
+                alert('Error loading PDF: ' + error.message);
+                elements.pdfFileName.textContent = file.name + ' ✗ (failed)';
+                elements.pdfFileName.style.color = '#dc3545';
+                console.error('PDF load error:', error);
+            }
+        }
+
+        async function handleStampFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            state.stampFile = file;
+            elements.stampFileName.textContent = file.name + ' (loading...)';
+            elements.stampFileName.style.color = '#666';
+
+            try {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+                
+                state.stampImage = img;
+                state.originalStampSize = { width: img.width, height: img.height };
+                
+                console.log('Stamp loaded:', state.originalStampSize);
+                elements.stampFileName.textContent = file.name + ' ✓ (' + img.width + 'x' + img.height + ')';
+                elements.stampFileName.style.color = '#28a745';
+                
+                if (state.renderedPage) {
+                    handlePositionPresetChange();
+                    updatePreview();
+                } else if (state.pdfDocument) {
+                    // PDF is loaded but page hasn't rendered yet, wait a bit
+                    setTimeout(() => {
+                        if (state.renderedPage) {
+                            handlePositionPresetChange();
+                            updatePreview();
+                        }
+                    }, 100);
+                }
+                updateUIState();
+            } catch (error) {
+                alert('Error loading stamp: ' + error.message);
+                elements.stampFileName.textContent = file.name + ' ✗ (failed)';
+                elements.stampFileName.style.color = '#dc3545';
+                console.error('Stamp load error:', error);
+            }
+        }
+
+        // Page Navigation
+        async function previousPage() {
+            if (state.currentPage > 0) {
+                state.currentPage--;
+                await renderPage();
+            }
+        }
+
+        async function nextPage() {
+            if (state.currentPage < state.pdfDocument.numPages - 1) {
+                state.currentPage++;
+                await renderPage();
+            }
+        }
+
+        // Rendering
+        async function renderPage() {
+            if (!state.pdfDocument) return;
+
+            const page = await state.pdfDocument.getPage(state.currentPage + 1);
+            const viewport = page.getViewport({ scale: 2.0 }); // Render at 2x for quality
+
+            state.originalPageWidth = viewport.width;
+            state.originalPageHeight = viewport.height;
+
+            // Create an offscreen canvas for the PDF
+            const offscreenCanvas = document.createElement('canvas');
+            const context = offscreenCanvas.getContext('2d');
+            offscreenCanvas.width = viewport.width;
+            offscreenCanvas.height = viewport.height;
+
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+
+            state.renderedPage = offscreenCanvas;
+            
+            elements.pageLabel.textContent = `Page: ${state.currentPage + 1} / ${state.pdfDocument.numPages}`;
+            
+            handlePositionPresetChange();
+            updatePreview();
+            
+            // Auto-fit on first load
+            if (state.zoomFactor === 1.0) {
+                setTimeout(zoomToFit, 100);
+            }
+        }
+
+        function updatePreview() {
+            if (!state.renderedPage) {
+                console.log('No rendered page yet');
+                return;
+            }
+
+            const canvas = elements.previewCanvas;
+            const ctx = canvas.getContext('2d');
+
+            // Calculate zoomed dimensions
+            const zoomedWidth = state.originalPageWidth * state.zoomFactor;
+            const zoomedHeight = state.originalPageHeight * state.zoomFactor;
+
+            canvas.width = zoomedWidth;
+            canvas.height = zoomedHeight;
+
+            // Draw PDF (zoomed)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(state.renderedPage, 0, 0, zoomedWidth, zoomedHeight);
+
+            // Draw stamp if loaded
+            if (state.stampImage && state.originalStampSize) {
+                const scaledStampWidth = state.originalStampSize.width * state.stampScale;
+                const scaledStampHeight = state.originalStampSize.height * state.stampScale;
+                
+                const zoomedX = state.stampPosition.x * state.zoomFactor;
+                const zoomedY = state.stampPosition.y * state.zoomFactor;
+                const zoomedStampWidth = scaledStampWidth * state.zoomFactor;
+                const zoomedStampHeight = scaledStampHeight * state.zoomFactor;
+
+                console.log('Drawing stamp at:', {
+                    x: zoomedX,
+                    y: zoomedY,
+                    width: zoomedStampWidth,
+                    height: zoomedStampHeight,
+                    opacity: state.opacity
+                });
+
+                ctx.globalAlpha = state.opacity;
+                ctx.drawImage(
+                    state.stampImage,
+                    zoomedX,
+                    zoomedY,
+                    zoomedStampWidth,
+                    zoomedStampHeight
+                );
+                ctx.globalAlpha = 1.0;
+            } else {
+                if (!state.stampImage) {
+                    console.log('No stamp image loaded');
+                }
+                if (!state.originalStampSize) {
+                    console.log('No original stamp size stored');
+                }
+            }
+        }
+
+        // Zoom Controls
+        function handleZoomChange(e) {
+            state.zoomFactor = e.target.value / 100;
+            elements.zoomLabel.textContent = `${e.target.value}%`;
+            updatePreview();
+        }
+
+        function zoomBy(delta) {
+            const newValue = Math.max(10, Math.min(300, parseInt(elements.zoomSlider.value) + delta));
+            elements.zoomSlider.value = newValue;
+            handleZoomChange({ target: elements.zoomSlider });
+        }
+
+        function zoomToFit() {
+            if (!state.renderedPage) return;
+
+            const containerWidth = elements.previewContainer.clientWidth;
+            const containerHeight = elements.previewContainer.clientHeight;
+            
+            const scaleX = containerWidth / state.originalPageWidth;
+            const scaleY = containerHeight / state.originalPageHeight;
+            const scale = Math.min(scaleX, scaleY) * 0.95;
+
+            elements.zoomSlider.value = Math.round(scale * 100);
+            handleZoomChange({ target: elements.zoomSlider });
+        }
+
+        // Position Controls
+        function handlePositionPresetChange() {
+            if (!state.renderedPage || !state.stampImage) {
+                console.log('Cannot set position - missing:', {
+                    hasRenderedPage: !!state.renderedPage,
+                    hasStampImage: !!state.stampImage
+                });
+                return;
+            }
+
+            const preset = elements.positionPreset.value;
+            const pw = state.originalPageWidth;
+            const ph = state.originalPageHeight;
+            const sw = state.originalStampSize.width * state.stampScale;
+            const sh = state.originalStampSize.height * state.stampScale;
+
+            let x, y;
+
+            switch (preset) {
+                case 'top-left':
+                    x = 0; y = 0;
+                    break;
+                case 'top-right':
+                    x = pw - sw; y = 0;
+                    break;
+                case 'center':
+                    x = (pw - sw) / 2; y = (ph - sh) / 2;
+                    break;
+                case 'bottom-left':
+                    x = 0; y = ph - sh;
+                    break;
+                case 'bottom-right':
+                    x = pw - sw; y = ph - sh;
+                    break;
+                case 'custom':
+                    x = state.stampPosition.x;
+                    y = state.stampPosition.y;
+                    break;
+            }
+
+            x = Math.max(0, Math.min(pw - sw, x));
+            y = Math.max(0, Math.min(ph - sh, y));
+
+            state.stampPosition = { x, y };
+            elements.xCoord.value = Math.round(x);
+            elements.yCoord.value = Math.round(y);
+            elements.xCoord.max = Math.max(0, pw - sw);
+            elements.yCoord.max = Math.max(0, ph - sh);
+
+            console.log('Position set:', { preset, x, y, pw, ph, sw, sh });
+
+            updatePreview();
+        }
+
+        function handleCoordChange() {
+            state.stampPosition.x = parseInt(elements.xCoord.value) || 0;
+            state.stampPosition.y = parseInt(elements.yCoord.value) || 0;
+            
+            if (elements.positionPreset.value !== 'custom') {
+                elements.positionPreset.value = 'custom';
+            }
+            
+            updatePreview();
+        }
+
+        function handleOpacityChange(e) {
+            state.opacity = e.target.value / 100;
+            elements.opacityValue.textContent = `${e.target.value}%`;
+            updatePreview();
+        }
+
+        function handleScaleChange(e) {
+            state.stampScale = e.target.value / 100;
+            elements.scaleValue.textContent = `${e.target.value}%`;
+            handlePositionPresetChange();
+        }
+
+        // Mouse Dragging
+        function handleMouseDown(e) {
+            if (!state.stampImage) return;
+
+            const rect = elements.previewCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const scaledStampWidth = state.originalStampSize.width * state.stampScale;
+            const scaledStampHeight = state.originalStampSize.height * state.stampScale;
+            const zoomedX = state.stampPosition.x * state.zoomFactor;
+            const zoomedY = state.stampPosition.y * state.zoomFactor;
+            const zoomedStampWidth = scaledStampWidth * state.zoomFactor;
+            const zoomedStampHeight = scaledStampHeight * state.zoomFactor;
+
+            // Check if click is within stamp bounds
+            if (mouseX >= zoomedX && mouseX <= zoomedX + zoomedStampWidth &&
+                mouseY >= zoomedY && mouseY <= zoomedY + zoomedStampHeight) {
+                state.isDragging = true;
+                state.dragStart = { x: mouseX, y: mouseY };
+                state.dragStartStampPos = { ...state.stampPosition };
+                elements.previewCanvas.classList.add('dragging');
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!state.isDragging) return;
+
+            const rect = elements.previewCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const deltaX = (mouseX - state.dragStart.x) / state.zoomFactor;
+            const deltaY = (mouseY - state.dragStart.y) / state.zoomFactor;
+
+            const scaledStampWidth = state.originalStampSize.width * state.stampScale;
+            const scaledStampHeight = state.originalStampSize.height * state.stampScale;
+
+            let newX = state.dragStartStampPos.x + deltaX;
+            let newY = state.dragStartStampPos.y + deltaY;
+
+            // Clamp to bounds
+            newX = Math.max(0, Math.min(state.originalPageWidth - scaledStampWidth, newX));
+            newY = Math.max(0, Math.min(state.originalPageHeight - scaledStampHeight, newY));
+
+            state.stampPosition = { x: newX, y: newY };
+            elements.xCoord.value = Math.round(newX);
+            elements.yCoord.value = Math.round(newY);
+            
+            if (elements.positionPreset.value !== 'custom') {
+                elements.positionPreset.value = 'custom';
+            }
+
+            updatePreview();
+        }
+
+        function handleMouseUp() {
+            if (state.isDragging) {
+                state.isDragging = false;
+                elements.previewCanvas.classList.remove('dragging');
+            }
+        }
+
+        // Process and Download
+        async function handleProcess() {
+            if (!state.pdfFile || !state.stampFile) {
+                alert('Please select both a PDF and a stamp image.');
+                return;
+            }
+
+            try {
+                elements.processBtn.disabled = true;
+                elements.processBtn.textContent = 'Processing...';
+
+                // Load the PDF with pdf-lib
+                const pdfBytes = await state.pdfFile.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+
+                // Convert stamp to PNG bytes
+                const stampCanvas = document.createElement('canvas');
+                const stampCtx = stampCanvas.getContext('2d');
+                
+                const scaledWidth = Math.round(state.originalStampSize.width * state.stampScale);
+                const scaledHeight = Math.round(state.originalStampSize.height * state.stampScale);
+                
+                stampCanvas.width = scaledWidth;
+                stampCanvas.height = scaledHeight;
+                
+                stampCtx.globalAlpha = state.opacity;
+                stampCtx.drawImage(state.stampImage, 0, 0, scaledWidth, scaledHeight);
+                
+                const stampBlob = await new Promise(resolve => 
+                    stampCanvas.toBlob(resolve, 'image/png')
+                );
+                const stampBytes = await stampBlob.arrayBuffer();
+                const stampImage = await pdfDoc.embedPng(stampBytes);
+
+                // Determine which pages to stamp
+                let pagesToStamp = [];
+                if (elements.allPagesCheck.checked) {
+                    pagesToStamp = Array.from({ length: pdfDoc.getPageCount() }, (_, i) => i);
+                } else {
+                    const rangeText = elements.pageRangeInput.value.trim();
+                    if (rangeText) {
+                        pagesToStamp = parsePageRange(rangeText, pdfDoc.getPageCount());
+                    } else {
+                        pagesToStamp = [state.currentPage];
+                    }
+                }
+
+                // Get preview dimensions for scaling
+                const previewWidth = state.originalPageWidth;
+                const previewHeight = state.originalPageHeight;
+
+                // Stamp each page
+                for (const pageIndex of pagesToStamp) {
+                    const page = pdfDoc.getPage(pageIndex);
+                    const { width: pdfWidth, height: pdfHeight } = page.getSize();
+
+                    // Calculate scaling factors
+                    const scaleX = pdfWidth / previewWidth;
+                    const scaleY = pdfHeight / previewHeight;
+
+                    // Scale position and size
+                    const x = state.stampPosition.x * scaleX;
+                    const y = pdfHeight - (state.stampPosition.y * scaleY) - (scaledHeight * scaleY);
+                    const width = scaledWidth * scaleX;
+                    const height = scaledHeight * scaleY;
+
+                    page.drawImage(stampImage, {
+                        x: x,
+                        y: y,
+                        width: width,
+                        height: height,
+                        opacity: state.opacity
+                    });
+                }
+
+                // Save and download
+                const modifiedPdfBytes = await pdfDoc.save();
+                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'stamped_' + state.pdfFile.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                alert('PDF processed and downloaded successfully!');
+            } catch (error) {
+                alert('Error processing PDF: ' + error.message);
+                console.error(error);
+            } finally {
+                elements.processBtn.disabled = false;
+                elements.processBtn.textContent = 'Process & Download';
+            }
+        }
+
+        function parsePageRange(rangeText, totalPages) {
+            const pages = [];
+            const parts = rangeText.split(',');
+
+            for (const part of parts) {
+                const trimmed = part.trim();
+                if (trimmed.includes('-')) {
+                    const [start, end] = trimmed.split('-').map(s => s.trim());
+                    const startPage = start ? parseInt(start) - 1 : 0;
+                    const endPage = end ? parseInt(end) - 1 : totalPages - 1;
+                    
+                    for (let i = startPage; i <= endPage && i < totalPages; i++) {
+                        if (i >= 0 && !pages.includes(i)) {
+                            pages.push(i);
+                        }
+                    }
+                } else if (trimmed) {
+                    const pageNum = parseInt(trimmed) - 1;
+                    if (pageNum >= 0 && pageNum < totalPages && !pages.includes(pageNum)) {
+                        pages.push(pageNum);
+                    }
+                }
+            }
+
+            return pages.sort((a, b) => a - b);
+        }
+
+        // UI State Management
+        function updateUIState() {
+            const hasPdf = !!state.pdfDocument;
+            const hasStamp = !!state.stampImage;
+            const ready = hasPdf && hasStamp;
+
+            elements.prevPageBtn.disabled = !hasPdf || state.currentPage === 0;
+            elements.nextPageBtn.disabled = !hasPdf || state.currentPage >= state.pdfDocument?.numPages - 1;
+            elements.zoomSlider.disabled = !hasPdf;
+            elements.zoomInBtn.disabled = !hasPdf;
+            elements.zoomOutBtn.disabled = !hasPdf;
+            elements.zoomFitBtn.disabled = !hasPdf;
+            elements.positionPreset.disabled = !ready;
+            elements.xCoord.disabled = !ready;
+            elements.yCoord.disabled = !ready;
+            elements.opacitySlider.disabled = !ready;
+            elements.scaleSlider.disabled = !ready;
+            elements.allPagesCheck.disabled = !ready;
+            elements.pageRangeInput.disabled = !ready || elements.allPagesCheck.checked;
+            elements.batchModeCheck.disabled = !ready;
+            elements.processBtn.disabled = !ready;
+        }
+
+        // Initialize
+        updateUIState();
+    </script>
+</body>
+</html>
