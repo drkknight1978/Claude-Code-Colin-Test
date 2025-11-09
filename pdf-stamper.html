@@ -568,7 +568,7 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    const dateText = new Date(state.dateValue).toLocaleDateString();
+                    const dateText = new Date(state.dateValue).toLocaleDateString('en-GB');
                     let dateX, dateY;
 
                     if (state.datePosition === 'middle') {
@@ -883,7 +883,7 @@
 
                     // Draw date text if enabled
                     if (state.addDate && state.dateValue) {
-                        const dateText = new Date(state.dateValue).toLocaleDateString();
+                        const dateText = new Date(state.dateValue).toLocaleDateString('en-GB');
                         const fontSize = state.dateFontSize * scaleX;
 
                         // Convert hex color to RGB
