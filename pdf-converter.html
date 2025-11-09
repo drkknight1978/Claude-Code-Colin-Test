@@ -570,11 +570,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <!-- UTIF.js for TIFF handling -->
-    <script src="https://cdn.jsdelivr.net/npm/utif@4.0.0/UTIF.js"></script>
+    <script src="https://unpkg.com/utif@3.1.0/UTIF.js"></script>
 
     <script>
         // Configure PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Wait for UTIF to load
+        if (typeof UTIF === 'undefined') {
+            console.error('UTIF library failed to load');
+        }
 
         // Application state
         let files = [];
@@ -1094,7 +1099,9 @@
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            // Create TIFF IFD (Image File Directory)
+            // UTIF.encode expects IFD with data property
+            const rgba = new Uint8Array(imageData.data.buffer);
+
             const ifd = {
                 t256: [canvas.width],           // ImageWidth
                 t257: [canvas.height],          // ImageLength
@@ -1109,11 +1116,12 @@
                 t283: [dpi],                    // YResolution
                 t284: [1],                      // PlanarConfiguration (1 = chunky)
                 t296: [2],                      // ResolutionUnit (2 = inches)
-                t338: [1]                       // ExtraSamples (1 = associated alpha)
+                t338: [1],                      // ExtraSamples (1 = associated alpha)
+                data: rgba                      // Image data
             };
 
-            // Encode TIFF
-            const tiffBuffer = UTIF.encodeImage(imageData.data.buffer, canvas.width, canvas.height, ifd);
+            // Encode TIFF using UTIF.encode (takes array of IFDs)
+            const tiffBuffer = UTIF.encode([ifd]);
 
             // Create blob
             return new Blob([tiffBuffer], { type: 'image/tiff' });
