@@ -51,8 +51,27 @@ Calculate voltage drop in electrical systems with iterative precision. Essential
 - Input validation and error handling
 - Railway-themed interface matching the application suite
 
-### 3. Future Tools (Coming Soon)
-- Technical Drawings Converter
+### 3. PDF to TIFF Converter
+Convert and clean scanned engineering drawings for CAD applications with professional image processing.
+
+**Features**:
+- **100% Client-Side Processing** - Files never leave your browser
+- **Multi-File Support** - Load and batch process multiple PDFs and TIFFs
+- **Live Preview** - Compare original and processed output side-by-side
+- **PDF Rendering** - Convert PDF pages to TIFF at chosen DPI (150-600)
+- **Despeckle Filter** - Median filter with configurable kernel sizes (3×3, 5×5, 7×7)
+- **Binarization** - Otsu's automatic thresholding for clean 1-bit output
+- **Batch Processing** - Process all loaded files at once
+- **Keyboard Navigation** - Use arrow keys (← →) to cycle through files
+- **Drag & Drop** - Simple file loading interface
+- **Proper TIFF Output** - Saves as genuine TIFF files with embedded DPI metadata
+
+**Processing Pipeline**:
+```
+PDF/TIFF Input → Render at DPI → [Optional] Despeckle → [Optional] Binarize → TIFF Output
+```
+
+### 4. Future Tools (Coming Soon)
 - Rail Calculator (additional functionality)
 - Data Converter
 
@@ -68,7 +87,7 @@ Calculate voltage drop in electrical systems with iterative precision. Essential
 
 3. **Select a Tool**
    - Choose from available utilities on the home page
-   - Currently: PDF Stamper and Voltage Drop Calculator are available
+   - Currently: PDF Stamper, Voltage Drop Calculator, and PDF to TIFF Converter are available
 
 4. **Logout**
    - Click the "Logout" button on any page to end your session
@@ -81,6 +100,7 @@ Calculate voltage drop in electrical systems with iterative precision. Essential
 ├── auth.js             # Shared authentication module
 ├── pdf-stamper.html    # PDF stamping tool
 ├── calc.html           # Voltage drop calculator tool
+├── pdf-converter.html  # PDF to TIFF converter tool
 ├── classic_style.css   # Classic styling for calculator
 ├── README.md           # This file
 ├── AUTH_README.md      # Authentication setup guide
@@ -191,16 +211,52 @@ Change to desired duration:
 - Conductor size can include units (e.g., "2.5mm²" or "2.5 (f)")
 - Resistance must be a valid number in Ω/km
 
+## 📄 PDF to TIFF Converter Usage
+
+1. **Login** to access the tool
+2. **Load Files**:
+   - Click the upload area or drag & drop PDF/TIFF files
+   - Multiple files can be loaded at once
+   - Supported formats: PDF, TIF, TIFF
+3. **Navigate Files**:
+   - Click files in the list to preview them
+   - Use "Previous" / "Next" buttons or arrow keys (← →)
+4. **Configure Processing Options**:
+   - ☑️ **PDF → TIFF Convert**: Enable binarization for PDF files (automatically enabled for PDFs)
+   - ☑️ **Despeckle**: Apply median filter for noise reduction
+   - **Kernel Size**: Choose filter strength (3×3=fast, 5×5=balanced, 7×7=strong)
+   - **Target DPI**: Set output resolution (150, 200, 300, or 600 DPI - 300 recommended for CAD)
+5. **Preview Results**:
+   - Click "Update Preview" to see processed output
+   - Preview updates automatically when changing options
+   - Compare original vs. processed side-by-side
+6. **Process Files**:
+   - **Process Current File**: Convert the currently displayed file
+   - **Process All Files**: Batch convert all loaded files
+   - Files download automatically as `.tif` format
+   - Filenames include suffix: `_300dpi_bin` for binarized PDFs, `_despeckle` for despeckling
+
+**Processing Algorithms**:
+- **Median Filter**: Collects pixels in a kernel window, sorts values, and selects the median. Effective at removing salt-and-pepper noise while preserving edges.
+- **Otsu's Thresholding**: Calculates optimal threshold to separate foreground/background by maximizing between-class variance. Produces clean 1-bit images ideal for CAD underlays.
+
+**Use Cases**:
+- Converting scanned engineering drawings for AutoCAD/MicroStation
+- Cleaning legacy PDF drawings to create raster underlays
+- Batch processing technical documents for archiving
+- Removing noise from scanned line drawings
+
 ## 💻 Technical Details
 
 ### Technologies Used
-- **PDF.js** (v3.11.174) - PDF rendering
+- **PDF.js** (v3.11.174) - PDF rendering and conversion
 - **pdf-lib** (v1.17.1) - PDF modification
+- **UTIF.js** (v4.0.0) - TIFF encoding and decoding
 - **Web Crypto API** - Password hashing (SHA-256)
 - **LocalStorage API** - Session management
-- **FileReader API** - CSV file parsing
-- **Vanilla JavaScript** - No frameworks, no dependencies
-- **HTML5 Canvas** - Preview rendering
+- **FileReader API** - CSV file parsing and file handling
+- **Vanilla JavaScript** - No frameworks, minimal dependencies
+- **HTML5 Canvas** - Image processing and preview rendering
 
 ### Browser Compatibility
 
@@ -341,7 +397,60 @@ To modify:
 - Check conductor selection matches intended size
 - Ensure positive values for all inputs
 
+### PDF to TIFF Converter Issues
+
+**Files won't load**
+- Ensure PDF files are not password-protected or corrupted
+- Check TIFF files are valid format (not multi-page)
+- Try with smaller file sizes first
+- Check browser console for specific error messages
+
+**Preview not updating**
+- Click "Update Preview" button manually
+- Ensure file is fully loaded (check file info panel)
+- Try reloading the file
+- Check that options are properly selected
+
+**Output TIFF files appear incorrect**
+- Verify DPI setting matches your requirements
+- For CAD use, 300 DPI is recommended minimum
+- Check that binarization is enabled for PDF conversion
+- Ensure despeckle settings are appropriate for your content
+
+**Processing is very slow**
+- Larger kernel sizes (7×7) process slower than smaller ones
+- Higher DPI settings increase processing time exponentially
+- Close other browser tabs to free memory
+- Process files individually instead of batch for large files
+
+**Downloaded files won't open**
+- Ensure your viewer supports TIFF format
+- Try opening with different applications (e.g., Windows Photos, GIMP, Photoshop)
+- Verify file downloaded completely (check file size)
+- Some viewers may not support all TIFF variants
+
+**Batch processing fails partway through**
+- Browser may run out of memory with many/large files
+- Process in smaller batches (5-10 files at a time)
+- Reduce DPI setting for batch operations
+- Reload page and try again if it hangs
+
 ## 📝 Version History
+
+### v2.3 - PDF to TIFF Converter
+- ✅ Added PDF to TIFF Converter tool (pdf-converter.html)
+- ✅ Client-side PDF rendering using PDF.js
+- ✅ TIFF encoding/decoding with UTIF.js
+- ✅ Median filter despeckle (3×3, 5×5, 7×7 kernels)
+- ✅ Otsu's automatic thresholding for binarization
+- ✅ Multi-file support with batch processing
+- ✅ Live side-by-side preview (original vs. processed)
+- ✅ Configurable DPI output (150-600)
+- ✅ Proper TIFF format with embedded DPI metadata
+- ✅ Keyboard navigation (arrow keys)
+- ✅ Drag & drop file upload
+- ✅ Railway-themed styling matching site aesthetic
+- ✅ Comprehensive documentation in README
 
 ### v2.2 - PDF Stamper Date Enhancement
 - ✅ Added date stamping functionality to PDF Stamper
@@ -403,6 +512,7 @@ MIT License - see LICENSE file for details
 Built with:
 - [PDF.js](https://mozilla.github.io/pdf.js/) by Mozilla
 - [pdf-lib](https://pdf-lib.js.org/) by Andrew Dillon
+- [UTIF.js](https://github.com/photopea/UTIF.js) by Photopea
 - Web Crypto API for secure hashing
 
 ## 📞 Support
