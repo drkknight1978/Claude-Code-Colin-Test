@@ -1099,32 +1099,48 @@
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            // UTIF.encode expects IFD with data property
-            const rgba = new Uint8Array(imageData.data.buffer);
+            // Convert RGBA to RGB (remove alpha channel for simpler TIFF)
+            const width = canvas.width;
+            const height = canvas.height;
+            const rgb = new Uint8Array(width * height * 3);
 
+            for (let i = 0; i < width * height; i++) {
+                rgb[i * 3] = imageData.data[i * 4];         // R
+                rgb[i * 3 + 1] = imageData.data[i * 4 + 1]; // G
+                rgb[i * 3 + 2] = imageData.data[i * 4 + 2]; // B
+            }
+
+            // Create proper IFD structure for UTIF
             const ifd = {
-                t256: [canvas.width],           // ImageWidth
-                t257: [canvas.height],          // ImageLength
-                t258: [8, 8, 8, 8],            // BitsPerSample (RGBA)
-                t259: [1],                      // Compression (1 = no compression)
-                t262: [2],                      // PhotometricInterpretation (2 = RGB)
-                t273: undefined,                // StripOffsets (set by encoder)
-                t277: [4],                      // SamplesPerPixel (RGBA = 4)
-                t278: [canvas.height],          // RowsPerStrip
-                t279: undefined,                // StripByteCounts (set by encoder)
-                t282: [dpi],                    // XResolution
-                t283: [dpi],                    // YResolution
-                t284: [1],                      // PlanarConfiguration (1 = chunky)
-                t296: [2],                      // ResolutionUnit (2 = inches)
-                t338: [1],                      // ExtraSamples (1 = associated alpha)
-                data: rgba                      // Image data
+                t256: [width],              // ImageWidth
+                t257: [height],             // ImageLength
+                t258: [8, 8, 8],           // BitsPerSample (RGB = 3 channels, 8 bits each)
+                t259: [1],                  // Compression (1 = none)
+                t262: [2],                  // PhotometricInterpretation (2 = RGB)
+                t277: [3],                  // SamplesPerPixel (RGB = 3)
+                t278: [height],             // RowsPerStrip (whole image in one strip)
+                t282: [dpi, 1],            // XResolution (as rational: dpi/1)
+                t283: [dpi, 1],            // YResolution (as rational: dpi/1)
+                t284: [1],                  // PlanarConfiguration (1 = chunky/interleaved)
+                t296: [2]                   // ResolutionUnit (2 = inches)
             };
 
-            // Encode TIFF using UTIF.encode (takes array of IFDs)
-            const tiffBuffer = UTIF.encode([ifd]);
+            // Add the image data
+            const data = new Uint8Array(rgb);
 
-            // Create blob
-            return new Blob([tiffBuffer], { type: 'image/tiff' });
+            // Use UTIF.encodeImage to create TIFF
+            try {
+                const tiffData = UTIF.encodeImage(data.buffer, width, height, ifd);
+                return new Blob([tiffData], { type: 'image/tiff' });
+            } catch (error) {
+                console.error('TIFF encoding error:', error);
+                // Fallback to PNG if TIFF encoding fails
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/png');
+                });
+            }
         }
 
         function downloadFile(blob, filename) {
