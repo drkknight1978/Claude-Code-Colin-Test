@@ -1098,35 +1098,84 @@
             // Get image data from canvas
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-            // Convert RGBA to RGB (remove alpha channel for simpler TIFF)
             const width = canvas.width;
             const height = canvas.height;
-            const rgb = new Uint8Array(width * height * 3);
 
-            for (let i = 0; i < width * height; i++) {
-                rgb[i * 3] = imageData.data[i * 4];         // R
-                rgb[i * 3 + 1] = imageData.data[i * 4 + 1]; // G
-                rgb[i * 3 + 2] = imageData.data[i * 4 + 2]; // B
+            // Check if image is bilevel (only black and white pixels)
+            let isBilevel = true;
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                const r = imageData.data[i];
+                const g = imageData.data[i + 1];
+                const b = imageData.data[i + 2];
+                // Check if pixel is pure black (0,0,0) or pure white (255,255,255)
+                if (!((r === 0 && g === 0 && b === 0) || (r === 255 && g === 255 && b === 255))) {
+                    isBilevel = false;
+                    break;
+                }
             }
 
-            // Create proper IFD structure for UTIF
-            const ifd = {
-                t256: [width],              // ImageWidth
-                t257: [height],             // ImageLength
-                t258: [8, 8, 8],           // BitsPerSample (RGB = 3 channels, 8 bits each)
-                t259: [1],                  // Compression (1 = none)
-                t262: [2],                  // PhotometricInterpretation (2 = RGB)
-                t277: [3],                  // SamplesPerPixel (RGB = 3)
-                t278: [height],             // RowsPerStrip (whole image in one strip)
-                t282: [dpi, 1],            // XResolution (as rational: dpi/1)
-                t283: [dpi, 1],            // YResolution (as rational: dpi/1)
-                t284: [1],                  // PlanarConfiguration (1 = chunky/interleaved)
-                t296: [2]                   // ResolutionUnit (2 = inches)
-            };
+            let data, ifd;
 
-            // Add the image data
-            const data = new Uint8Array(rgb);
+            if (isBilevel) {
+                // Encode as 1-bit bilevel (black and white only)
+                // Pack 8 pixels into 1 byte
+                const bytesPerRow = Math.ceil(width / 8);
+                const bilevelData = new Uint8Array(bytesPerRow * height);
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        const isWhite = imageData.data[idx] === 255;
+
+                        if (isWhite) {
+                            const byteIdx = y * bytesPerRow + Math.floor(x / 8);
+                            const bitIdx = 7 - (x % 8);
+                            bilevelData[byteIdx] |= (1 << bitIdx);
+                        }
+                    }
+                }
+
+                data = bilevelData;
+                ifd = {
+                    t256: [width],              // ImageWidth
+                    t257: [height],             // ImageLength
+                    t258: [1],                  // BitsPerSample (1 bit)
+                    t259: [1],                  // Compression (1 = none)
+                    t262: [1],                  // PhotometricInterpretation (1 = BlackIsZero)
+                    t277: [1],                  // SamplesPerPixel (1 for bilevel)
+                    t278: [height],             // RowsPerStrip
+                    t282: [dpi, 1],            // XResolution
+                    t283: [dpi, 1],            // YResolution
+                    t284: [1],                  // PlanarConfiguration
+                    t296: [2]                   // ResolutionUnit (inches)
+                };
+            } else {
+                // Encode as 8-bit grayscale (much smaller than RGB)
+                const grayData = new Uint8Array(width * height);
+
+                for (let i = 0; i < width * height; i++) {
+                    const r = imageData.data[i * 4];
+                    const g = imageData.data[i * 4 + 1];
+                    const b = imageData.data[i * 4 + 2];
+                    // Convert to grayscale
+                    grayData[i] = Math.round((r + g + b) / 3);
+                }
+
+                data = grayData;
+                ifd = {
+                    t256: [width],              // ImageWidth
+                    t257: [height],             // ImageLength
+                    t258: [8],                  // BitsPerSample (8-bit grayscale)
+                    t259: [1],                  // Compression (1 = none)
+                    t262: [1],                  // PhotometricInterpretation (1 = BlackIsZero)
+                    t277: [1],                  // SamplesPerPixel (1 for grayscale)
+                    t278: [height],             // RowsPerStrip
+                    t282: [dpi, 1],            // XResolution
+                    t283: [dpi, 1],            // YResolution
+                    t284: [1],                  // PlanarConfiguration
+                    t296: [2]                   // ResolutionUnit (inches)
+                };
+            }
 
             // Use UTIF.encodeImage to create TIFF
             try {
@@ -1134,6 +1183,8 @@
                 return new Blob([tiffData], { type: 'image/tiff' });
             } catch (error) {
                 console.error('TIFF encoding error:', error);
+                console.error('IFD:', ifd);
+                console.error('Data length:', data.length);
                 // Fallback to PNG if TIFF encoding fails
                 return new Promise((resolve) => {
                     canvas.toBlob((blob) => {
