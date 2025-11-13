@@ -280,6 +280,8 @@
             zoomFactor: 1.0,
             stampScale: 1.0,
             originalStampSize: null,
+            stampOrientation: 1,
+            correctedStampCanvas: null,
             isDragging: false,
             dragStart: null,
             dragStartStampPos: null,
@@ -343,6 +345,101 @@
             dateOffsetXValue: document.getElementById('dateOffsetXValue'),
             dateOffsetYValue: document.getElementById('dateOffsetYValue')
         };
+
+        // EXIF Orientation Handling
+        async function getImageOrientation(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const view = new DataView(e.target.result);
+                    if (view.getUint16(0, false) !== 0xFFD8) {
+                        resolve(1); // Not a JPEG, no EXIF
+                        return;
+                    }
+                    const length = view.byteLength;
+                    let offset = 2;
+                    while (offset < length) {
+                        if (view.getUint16(offset + 2, false) <= 8) {
+                            resolve(1);
+                            return;
+                        }
+                        const marker = view.getUint16(offset, false);
+                        offset += 2;
+                        if (marker === 0xFFE1) {
+                            if (view.getUint32(offset += 2, false) !== 0x45786966) {
+                                resolve(1);
+                                return;
+                            }
+                            const little = view.getUint16(offset += 6, false) === 0x4949;
+                            offset += view.getUint32(offset + 4, little);
+                            const tags = view.getUint16(offset, little);
+                            offset += 2;
+                            for (let i = 0; i < tags; i++) {
+                                if (view.getUint16(offset + (i * 12), little) === 0x0112) {
+                                    resolve(view.getUint16(offset + (i * 12) + 8, little));
+                                    return;
+                                }
+                            }
+                        } else if ((marker & 0xFF00) !== 0xFF00) {
+                            break;
+                        } else {
+                            offset += view.getUint16(offset, false);
+                        }
+                    }
+                    resolve(1);
+                };
+                reader.readAsArrayBuffer(file.slice(0, 64 * 1024));
+            });
+        }
+
+        function createOrientedCanvas(img, orientation) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions based on orientation
+            if (orientation > 4) {
+                canvas.width = img.height;
+                canvas.height = img.width;
+            } else {
+                canvas.width = img.width;
+                canvas.height = img.height;
+            }
+
+            // Apply transformations based on EXIF orientation
+            switch (orientation) {
+                case 2:
+                    // Horizontal flip
+                    ctx.transform(-1, 0, 0, 1, canvas.width, 0);
+                    break;
+                case 3:
+                    // 180° rotation
+                    ctx.transform(-1, 0, 0, -1, canvas.width, canvas.height);
+                    break;
+                case 4:
+                    // Vertical flip
+                    ctx.transform(1, 0, 0, -1, 0, canvas.height);
+                    break;
+                case 5:
+                    // Vertical flip + 90° rotation
+                    ctx.transform(0, 1, 1, 0, 0, 0);
+                    break;
+                case 6:
+                    // 90° rotation
+                    ctx.transform(0, 1, -1, 0, canvas.height, 0);
+                    break;
+                case 7:
+                    // Horizontal flip + 90° rotation
+                    ctx.transform(0, -1, -1, 0, canvas.height, canvas.width);
+                    break;
+                case 8:
+                    // 270° rotation
+                    ctx.transform(0, -1, 1, 0, 0, canvas.width);
+                    break;
+            }
+
+            ctx.drawImage(img, 0, 0);
+            return canvas;
+        }
 
         // Event Listeners - File Selection
         elements.pdfFile.addEventListener('change', handlePdfFileSelect);
@@ -428,20 +525,29 @@
             elements.stampFileName.style.color = '#666';
 
             try {
+                // Read EXIF orientation
+                const orientation = await getImageOrientation(file);
+                console.log('EXIF Orientation:', orientation);
+
                 const img = new Image();
                 img.src = URL.createObjectURL(file);
                 await new Promise((resolve, reject) => {
                     img.onload = resolve;
                     img.onerror = reject;
                 });
-                
+
+                // Create orientation-corrected canvas
+                const correctedCanvas = createOrientedCanvas(img, orientation);
+
                 state.stampImage = img;
-                state.originalStampSize = { width: img.width, height: img.height };
-                
-                console.log('Stamp loaded:', state.originalStampSize);
-                elements.stampFileName.textContent = file.name + ' ✓ (' + img.width + 'x' + img.height + ')';
+                state.stampOrientation = orientation;
+                state.correctedStampCanvas = correctedCanvas;
+                state.originalStampSize = { width: correctedCanvas.width, height: correctedCanvas.height };
+
+                console.log('Stamp loaded:', state.originalStampSize, 'Orientation:', orientation);
+                elements.stampFileName.textContent = file.name + ' ✓ (' + correctedCanvas.width + 'x' + correctedCanvas.height + ')';
                 elements.stampFileName.style.color = '#28a745';
-                
+
                 if (state.renderedPage) {
                     handlePositionPresetChange();
                     updatePreview();
@@ -533,7 +639,7 @@
             ctx.drawImage(state.renderedPage, 0, 0, zoomedWidth, zoomedHeight);
 
             // Draw stamp if loaded
-            if (state.stampImage && state.originalStampSize) {
+            if (state.correctedStampCanvas && state.originalStampSize) {
                 const scaledStampWidth = state.originalStampSize.width * state.stampScale;
                 const scaledStampHeight = state.originalStampSize.height * state.stampScale;
 
@@ -552,7 +658,7 @@
 
                 ctx.globalAlpha = state.opacity;
                 ctx.drawImage(
-                    state.stampImage,
+                    state.correctedStampCanvas,
                     zoomedX,
                     zoomedY,
                     zoomedStampWidth,
@@ -822,20 +928,20 @@
                 const pdfBytes = await state.pdfFile.arrayBuffer();
                 const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
 
-                // Convert stamp to PNG bytes
+                // Convert stamp to PNG bytes using orientation-corrected canvas
                 const stampCanvas = document.createElement('canvas');
                 const stampCtx = stampCanvas.getContext('2d');
-                
+
                 const scaledWidth = Math.round(state.originalStampSize.width * state.stampScale);
                 const scaledHeight = Math.round(state.originalStampSize.height * state.stampScale);
-                
+
                 stampCanvas.width = scaledWidth;
                 stampCanvas.height = scaledHeight;
-                
+
                 stampCtx.globalAlpha = state.opacity;
-                stampCtx.drawImage(state.stampImage, 0, 0, scaledWidth, scaledHeight);
-                
-                const stampBlob = await new Promise(resolve => 
+                stampCtx.drawImage(state.correctedStampCanvas, 0, 0, scaledWidth, scaledHeight);
+
+                const stampBlob = await new Promise(resolve =>
                     stampCanvas.toBlob(resolve, 'image/png')
                 );
                 const stampBytes = await stampBlob.arrayBuffer();
